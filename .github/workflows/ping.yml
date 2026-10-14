@@ -48,4 +48,13 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           # < /dev/null : évite que la commande attende une entrée dans le CI
-          claude -p "Reply with a single word: ok" < /dev/null
+          set +e
+          out=$(claude -p "Reply with a single word: ok" < /dev/null 2>&1)
+          rc=$?
+          echo "$out"
+          if [ "$rc" -ne 0 ]; then
+            # Remonte le message d'erreur dans l'en-tête du run (onglet Summary)
+            msg=$(printf '%s' "$out" | head -c 600 | tr '\n' ' ')
+            echo "::error title=Ping Claude failed (exit $rc)::$msg"
+            exit "$rc"
+          fi
