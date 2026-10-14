@@ -26,13 +26,15 @@ A GitHub Action runs `claude -p "..."` on a cron schedule, authenticated with a 
 
 4. **Enable Actions** on the fork (`Actions` tab → enable workflows).
 
-Done. The workflow runs every 5 hours automatically. You can also trigger it manually from the Actions tab via "Run workflow".
+Done. The workflow runs automatically at 00:00, 05:00, 10:00, 15:00 and 20:00 UTC (5 hours apart, 4 hours between 20:00 and midnight). You can also trigger it manually from the Actions tab via "Run workflow".
 
 ## Caveats (please read)
 
 - **Subscription only.** This uses your Claude Pro/Max quota, not the paid API.
 - **Each ping uses a small slice of your window.** You're trading "window starts when I first send a message" for "window is always active but very slightly smaller." That's the whole point, but be aware.
-- **Cron drifts.** GitHub Actions cron can fire 5–15 min late. The schedule is set to every ~5h at fixed UTC hours to stay safe.
+- **Cron drifts.** GitHub Actions cron can fire 5–15 min late. That is harmless here: a late ping simply starts the next 5h window a few minutes later.
+- **GitHub pauses scheduled workflows after 60 days without repository activity** (on public repos). If the pings stop, open the `Actions` tab and re-enable the workflow, or push any commit.
+- **Never share your token.** Each person must generate their own with `claude setup-token` and store it as a secret in their own fork. Never commit it to the repo.
 - **ToS gray area.** Automating pings purely to manipulate your rate window isn't an explicitly sanctioned use of the OAuth token. Anthropic could disapprove. Use at your own risk; don't run this on an account you can't afford to lose.
 
 ## License

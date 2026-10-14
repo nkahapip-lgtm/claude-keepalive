@@ -2,26 +2,50 @@ name: Claude Keepalive
 
 on:
   schedule:
-    # Every 4h 45m — stays safely under the 5h rolling window
-    # even accounting for GitHub Actions cron drift (5–15 min).
+    # 5 pings par jour à heures fixes (UTC) : 00h, 05h, 10h, 15h, 20h.
+    # Écart de 5h entre chaque ping (4h entre 20h et minuit) : chaque ping
+    # tombe à la fin de la fenêtre précédente et ouvre donc une nouvelle
+    # fenêtre de 5h. GitHub peut retarder le cron de 5 à 15 min, c'est sans
+    # conséquence ici.
     - cron: "0 0,5,10,15,20 * * *"
   workflow_dispatch: {}
+
+# Droits minimaux : le workflow n'a pas besoin d'écrire dans le dépôt.
+permissions:
+  contents: read
+
+# Évite deux pings en même temps (ex. un lancement manuel pendant un cron).
+concurrency:
+  group: claude-keepalive
+  cancel-in-progress: false
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Check token is configured
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::error::Secret CLAUDE_CODE_OAUTH_TOKEN manquant. Ajoute-le dans Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
 
       - name: Ping Claude
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          echo "hi" | claude -p "Reply with a single word: ok"
+          # < /dev/null : évite que la commande attende une entrée dans le CI
+          claude -p "Reply with a single word: ok" < /dev/null
