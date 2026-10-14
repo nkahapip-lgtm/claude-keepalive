@@ -45,8 +45,12 @@ jobs:
 
       - name: Ping Claude
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          RAW_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
+          # Supprime espaces et retours à la ligne collés par erreur dans le secret
+          # (un token copié depuis un terminal est souvent coupé sur 2 lignes).
+          CLAUDE_CODE_OAUTH_TOKEN="$(printf '%s' "$RAW_TOKEN" | tr -d '[:space:]')"
+          export CLAUDE_CODE_OAUTH_TOKEN
           # < /dev/null : évite que la commande attende une entrée dans le CI
           set +e
           out=$(claude -p "Reply with a single word: ok" < /dev/null 2>&1)
